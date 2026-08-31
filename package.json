@@ -1,0 +1,11 @@
+{
+  "name": "career-agent",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
+  }
+}

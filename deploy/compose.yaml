@@ -1,0 +1,71 @@
+name: career-agent
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: career_agent
+      POSTGRES_USER: career_agent
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-career_agent}
+    volumes:
+      - career_agent_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U career_agent -d career_agent"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/docker/api.Dockerfile
+    environment:
+      CAREER_AGENT_DATABASE_URL: postgresql+psycopg://career_agent:${POSTGRES_PASSWORD:-career_agent}@db:5432/career_agent
+      CAREER_AGENT_PROVIDER: ${CAREER_AGENT_PROVIDER:-demo}
+      CAREER_AGENT_TIMEZONE: Asia/Shanghai
+      CAREER_AGENT_AUTO_CREATE_SCHEMA: "false"
+      CAREER_AGENT_COLLECTOR_TOKEN: ${CAREER_AGENT_COLLECTOR_TOKEN:-career-agent-local-collector}
+      CAREER_AGENT_MODEL_BASE_URL: ${CAREER_AGENT_MODEL_BASE_URL:-}
+      CAREER_AGENT_MODEL_API_KEY: ${CAREER_AGENT_MODEL_API_KEY:-}
+      CAREER_AGENT_MODEL_NAME: ${CAREER_AGENT_MODEL_NAME:-}
+      CAREER_AGENT_MODEL_TIMEOUT_SECONDS: ${CAREER_AGENT_MODEL_TIMEOUT_SECONDS:-180}
+      CAREER_AGENT_MODEL_CONFIG_PATH: /app/config/model-settings.json
+    volumes:
+      - career_agent_config:/app/config
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2)
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/docker/web.Dockerfile
+    ports:
+      - "127.0.0.1:8090:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1/ || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  career_agent_data:
+  career_agent_config:

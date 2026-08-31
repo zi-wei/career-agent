@@ -1,0 +1,11 @@
+.env
+.mypy_cache
+.pytest_cache
+.ruff_cache
+*.db
+__pycache__
+backend/**/__pycache__
+frontend/dist
+frontend/node_modules
+node_modules
+test-results
