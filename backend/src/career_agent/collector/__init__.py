@@ -1,0 +1,1 @@
+"""Local collector synchronization boundary."""
